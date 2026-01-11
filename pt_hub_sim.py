@@ -329,7 +329,7 @@ DEFAULT_SETTINGS = {
     "hub_data_dir": "",  # if blank, defaults to <this_dir>/hub_data
     "script_neural_runner2": "pt_thinker.py",
     "script_neural_trainer": "pt_trainer.py",
-    "script_trader": "pt_trader.py",
+    "script_trader": "pt_trader_sim.py",
     "auto_start_scripts": False,
 }
 
@@ -1541,7 +1541,7 @@ class LogProc:
 class PowerTraderHub(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("PowerTrader - Hub")
+        self.title("PowerTrader - Simulator Hub")
         self.geometry("1400x820")
 
         # Hard minimum window size so the UI can't be shrunk to a point where panes vanish.
@@ -1572,10 +1572,10 @@ class PowerTraderHub(tk.Tk):
         _ensure_dir(self.hub_dir)
 
         # file paths written by pt_trader.py (after edits below)
-        self.trader_status_path = os.path.join(self.hub_dir, "trader_status.json")
-        self.trade_history_path = os.path.join(self.hub_dir, "trade_history.jsonl")
-        self.pnl_ledger_path = os.path.join(self.hub_dir, "pnl_ledger.json")
-        self.account_value_history_path = os.path.join(self.hub_dir, "account_value_history.jsonl")
+        self.trader_status_path = os.path.join(self.hub_dir, "sim_trader_status.json")
+        self.trade_history_path = os.path.join(self.hub_dir, "sim_trade_history.jsonl")
+        self.pnl_ledger_path = os.path.join(self.hub_dir, "sim_pnl_ledger.json")
+        self.account_value_history_path = os.path.join(self.hub_dir, "sim_account_value_history.jsonl")
 
         # file written by pt_thinker.py (runner readiness gate used for Start All)
         self.runner_ready_path = os.path.join(self.hub_dir, "runner_ready.json")
@@ -1888,6 +1888,7 @@ class PowerTraderHub(tk.Tk):
         merged.update(data)
         # normalize
         merged["coins"] = [c.upper().strip() for c in merged.get("coins", [])]
+        "sim_start_balance_usd": 1000.0,
         return merged
 
     def _save_settings(self) -> None:
@@ -3081,7 +3082,8 @@ class PowerTraderHub(tk.Tk):
 
         env = os.environ.copy()
         env["POWERTRADER_HUB_DIR"] = self.hub_dir  # so rhcb writes where GUI reads
-
+        env["POWERTRADER_SIM_START_BALANCE_USD"] = str(self.settings.get("sim_start_balance_usd", 10000.0))
+        
         try:
             p.proc = subprocess.Popen(
                 [sys.executable, "-u", p.path],  # -u for unbuffered prints
