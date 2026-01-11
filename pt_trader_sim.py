@@ -12,17 +12,19 @@ import os
 import colorama
 from colorama import Fore, Style
 import traceback
+import os
 
+SIM_START_BALANCE_USD = float(os.environ.get("POWERTRADER_SIM_START_BALANCE_USD", "10000"))
 # -----------------------------
 # GUI HUB OUTPUTS
 # -----------------------------
 HUB_DATA_DIR = os.environ.get("POWERTRADER_HUB_DIR", os.path.join(os.path.dirname(__file__), "hub_data"))
 os.makedirs(HUB_DATA_DIR, exist_ok=True)
 
-TRADER_STATUS_PATH = os.path.join(HUB_DATA_DIR, "trader_status.json")
-TRADE_HISTORY_PATH = os.path.join(HUB_DATA_DIR, "trade_history.jsonl")
-PNL_LEDGER_PATH = os.path.join(HUB_DATA_DIR, "pnl_ledger.json")
-ACCOUNT_VALUE_HISTORY_PATH = os.path.join(HUB_DATA_DIR, "account_value_history.jsonl")
+TRADER_STATUS_PATH = os.path.join(HUB_DATA_DIR, "sim_trader_status.json")
+TRADE_HISTORY_PATH = os.path.join(HUB_DATA_DIR, "sim_trade_history.jsonl")
+PNL_LEDGER_PATH = os.path.join(HUB_DATA_DIR, "sim_pnl_ledger.json")
+ACCOUNT_VALUE_HISTORY_PATH = os.path.join(HUB_DATA_DIR, "sim_account_value_history.jsonl")
 
 # Initialize colorama
 colorama.init(autoreset=True)
