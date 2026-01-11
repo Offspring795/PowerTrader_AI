@@ -13,8 +13,91 @@ import colorama
 from colorama import Fore, Style
 import traceback
 import os
-
+import os
+import sys
+import time
+import json
+import traceback
+from datetime import datetime
 SIM_START_BALANCE_USD = float(os.environ.get("POWERTRADER_SIM_START_BALANCE_USD", "10000"))
+# -----------------------------------------
+# ADD THE SIMULATED EXCHANGE CLASS HERE
+# -----------------------------------------
+
+class SimExchange:
+    def __init__(self, start_balance_usd: float, slippage_pct: float = 0.05):
+        self.cash_usd = start_balance_usd
+        self.positions = {}
+        self.slippage_frac = slippage_pct / 100.0
+
+    def _get_price(self, symbol: str) -> float:
+        # TODO: wire this to your price feed
+        raise NotImplementedError("Wire SimExchange._get_price to your candle/price feed")
+
+    def _apply_slippage(self, price: float, side: str) -> float:
+        if side == "buy":
+            return price * (1.0 + self.slippage_frac)
+        else:
+            return price * (1.0 - self.slippage_frac)
+
+    def get_balance(self):
+        return {
+            "cash_usd": self.cash_usd,
+            "positions": self.positions.copy(),
+        }
+
+    def place_market_buy(self, symbol: str, amount_usd: float):
+        mid = self._get_price(symbol)
+        fill_price = self._apply_slippage(mid, "buy")
+        qty = amount_usd / fill_price
+
+        if amount_usd > self.cash_usd:
+            raise RuntimeError("SIM: Not enough cash")
+
+        self.cash_usd -= amount_usd
+
+        pos = self.positions.get(symbol, {"qty": 0.0, "avg_price": 0.0})
+        old_qty = pos["qty"]
+        old_avg = pos["avg_price"]
+
+        new_qty = old_qty + qty
+        new_avg = (old_qty * old_avg + qty * fill_price) / new_qty
+
+        self.positions[symbol] = {"qty": new_qty, "avg_price": new_avg}
+
+        return {
+            "symbol": symbol,
+            "side": "buy",
+            "qty": qty,
+            "price": fill_price,
+            "ts": time.time(),
+        }
+
+    def place_market_sell(self, symbol: str, quantity: float):
+        pos = self.positions.get(symbol, {"qty": 0.0, "avg_price": 0.0})
+        if quantity > pos["qty"]:
+            raise RuntimeError("SIM: Not enough position")
+
+        mid = self._get_price(symbol)
+        fill_price = self._apply_slippage(mid, "sell")
+        proceeds = quantity * fill_price
+
+        self.cash_usd += proceeds
+        new_qty = pos["qty"] - quantity
+
+        if new_qty <= 0:
+            self.positions.pop(symbol, None)
+        else:
+            self.positions[symbol] = {"qty": new_qty, "avg_price": pos["avg_price"]}
+
+        return {
+            "symbol": symbol,
+            "side": "sell",
+            "qty": quantity,
+            "price": fill_price,
+            "ts": time.time(),
+        }
+
 # -----------------------------
 # GUI HUB OUTPUTS
 # -----------------------------
